@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/rand"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -112,20 +114,16 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 	file := flag.Arg(0)
 	user := flag.Arg(1)
 
-	var f *os.File
+	var content []byte
 	var err error
 
 	if dontupdate {
-		f = os.Stdout
-	} else if create {
-		f, err = os.Create(file)
+		content, err = ioutil.ReadAll(os.Stdout)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "htpasswd: cannot open file %s for read/write access\n", file)
-			os.Exit(1)
+			log.Fatal(err)
 		}
-		defer f.Close()
-	} else {
-		f, err = os.Open(file)
+	} else if !create {
+		f, err := os.Open(file)
 		if err != nil {
 			if os.IsNotExist(err) {
 				fmt.Fprintf(os.Stderr, "htpasswd: cannot modify file %s; use '-c' to create it\n", file)
@@ -134,11 +132,16 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			}
 			os.Exit(1)
 		}
-		defer f.Close()
+
+		content, err = ioutil.ReadAll(f)
+		f.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	var input string
-	if flag.NArg() == 2 {
+	if flag.NArg() == 2 && !deleteuser {
 		t, err := tty.Open()
 		if err != nil {
 			log.Fatal(err)
@@ -162,7 +165,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 	}
 
 	var result string
-	if !noencrypt {
+	if !noencrypt && !deleteuser {
 		if forcebcrypt {
 			b, err := bcrypt.GenerateFromPassword([]byte(input), bcryptcost)
 			if err != nil {
@@ -184,24 +187,39 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 		result = input
 	}
 
-	found := false
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		token := strings.SplitN(line, ":", 2)
-		if len(token) != 2 {
-			continue
+	if create {
+		err = ioutil.WriteFile(file, []byte(user+":"+result+"\n"), 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "htpasswd: cannot open file %s for read/write access\n", file)
+			os.Exit(1)
+
 		}
-		if token[0] == user {
-			found = true
-			if !deleteuser {
-				f.WriteString(user + ":" + result + "\n")
+	} else {
+		found := false
+		scanner := bufio.NewScanner(bytes.NewReader(content))
+		var buf bytes.Buffer
+		for scanner.Scan() {
+			line := scanner.Text()
+			token := strings.SplitN(line, ":", 2)
+			if len(token) != 2 {
+				continue
 			}
-		} else {
-			f.WriteString(line + "\n")
+			if token[0] == user {
+				found = true
+				if !deleteuser {
+					buf.WriteString(user + ":" + result + "\n")
+				}
+			} else {
+				buf.WriteString(line + "\n")
+			}
 		}
-	}
-	if !found && !deleteuser {
-		f.WriteString(user + ":" + result + "\n")
+		if !found && !deleteuser {
+			buf.WriteString(user + ":" + result + "\n")
+		}
+		err = ioutil.WriteFile(file, buf.Bytes(), 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "htpasswd: cannot open file %s for read/write access\n", file)
+			os.Exit(1)
+		}
 	}
 }
