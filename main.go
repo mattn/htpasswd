@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 
@@ -120,7 +119,8 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 	if dontupdate {
 		content, err = ioutil.ReadAll(os.Stdout)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
+			os.Exit(1)
 		}
 	} else if !create {
 		f, err := os.Open(file)
@@ -136,7 +136,8 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 		content, err = ioutil.ReadAll(f)
 		f.Close()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
+			os.Exit(1)
 		}
 	}
 
@@ -144,17 +145,20 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 	if flag.NArg() == 2 && !deleteuser {
 		t, err := tty.Open()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
+			os.Exit(1)
 		}
 		fmt.Print("New password: ")
 		input, err = t.ReadPasswordNoEcho()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
+			os.Exit(1)
 		}
 		fmt.Print("Re-type new password: ")
 		retry, err := t.ReadPasswordNoEcho()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
+			os.Exit(1)
 		}
 		if input != retry {
 			fmt.Fprintln(os.Stderr, "htpasswd: password verification error")
@@ -169,13 +173,15 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 		if forcebcrypt {
 			b, err := bcrypt.GenerateFromPassword([]byte(input), bcryptcost)
 			if err != nil {
-				log.Fatal(err)
+				fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
+				os.Exit(1)
 			}
 			result = string(b)
 		} else {
 			s, err := randomString(8)
 			if err != nil {
-				log.Fatal(err)
+				fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
+				os.Exit(1)
 			}
 			result = password.APR1.Crypt([]byte(input), []byte(s), nil)
 		}
@@ -194,6 +200,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			os.Exit(1)
 
 		}
+		fmt.Fprintf(os.Stderr, "Adding password for user %s\n", user)
 	} else {
 		found := false
 		scanner := bufio.NewScanner(bytes.NewReader(content))
@@ -221,5 +228,6 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			fmt.Fprintf(os.Stderr, "htpasswd: cannot open file %s for read/write access\n", file)
 			os.Exit(1)
 		}
+		fmt.Fprintf(os.Stderr, "Updating password for user %s\n", user)
 	}
 }
