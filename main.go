@@ -38,7 +38,7 @@ func randomString(n int) (string, error) {
 }
 
 func init() {
-	password.Register(password.APR1)
+	password.Register(password.APR1, password.BCRYPT)
 }
 
 func main() {
@@ -106,7 +106,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 		os.Exit(2)
 	}
 
-	if flag.NArg() != 2 || (!useargument || flag.NArg() != 3) {
+	if flag.NArg() != 2 && (!useargument || flag.NArg() != 3) {
 		flag.Usage()
 		os.Exit(130)
 	}
@@ -171,6 +171,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 	var result string
 	if !noencrypt && !deleteuser {
 		if forcebcrypt {
+			//password.BCRYPT.Crypt
 			b, err := bcrypt.GenerateFromPassword([]byte(input), bcryptcost)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
