@@ -48,6 +48,7 @@ func main() {
 	var noverify bool
 	var forcemd5 bool
 	var forcebcrypt bool
+	var forcesha256 bool
 	var bcryptcost int = bcrypt.DefaultCost
 	var noencrypt bool
 	var deleteuser bool
@@ -108,6 +109,8 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 					}
 					bcryptcost = v
 					i++
+				case 's':
+					forcesha256 = true
 				case 'p':
 					noencrypt = true
 				case 'D':
@@ -210,20 +213,27 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 
 	var result string
 	if !noencrypt && !deleteuser {
-		if forcebcrypt && !forcemd5 {
+		if forcebcrypt {
 			b, err := bcrypt.GenerateFromPassword([]byte(input), bcryptcost)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
 				os.Exit(1)
 			}
 			result = string(b)
-		} else {
+		} else if forcemd5 {
 			s, err := randomString(8)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
 				os.Exit(1)
 			}
 			result = password.APR1.Crypt([]byte(input), []byte(s), nil)
+		} else if forcesha256 {
+			s, err := randomString(8)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
+				os.Exit(1)
+			}
+			result = password.SHA256.Crypt([]byte(input), []byte(s), nil)
 		}
 		if dontupdate {
 			fmt.Print(result)
