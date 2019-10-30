@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/rand"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -53,7 +52,8 @@ func main() {
 	var noencrypt bool
 	var deleteuser bool
 	var verifyuser bool
-	flag.Usage = func() {
+
+	usage := func() {
 		fmt.Fprint(os.Stderr, `Usage:
         htpasswd [-cimBdpsDv] [-C cost] passwordfile username
         htpasswd -b[cmBdpsDv] [-C cost] passwordfile username password
@@ -98,7 +98,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 					forcebcrypt = true
 				case 'C':
 					if i == len(os.Args)-1 {
-						flag.Usage()
+						usage()
 						os.Exit(2)
 					}
 					v, err := strconv.Atoi(os.Args[i+1])
@@ -139,12 +139,12 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 		os.Exit(2)
 	}
 
-	if flag.NArg() != 2 && (!useargument || flag.NArg() != 3) {
-		flag.Usage()
+	if len(args) != 2 && (!useargument || len(args) != 3) {
+		usage()
 		os.Exit(130)
 	}
-	file := flag.Arg(0)
-	user := flag.Arg(1)
+	file := args[0]
+	user := args[1]
 
 	var content []byte
 	var err error
@@ -182,7 +182,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			os.Exit(1)
 		}
 		input = string(b)
-	} else if flag.NArg() == 2 && !deleteuser {
+	} else if len(args) == 2 && !deleteuser {
 		t, err := tty.Open()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
@@ -205,7 +205,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			os.Exit(3)
 		}
 	} else {
-		input = flag.Arg(2)
+		input = args[2]
 	}
 
 	var result string
