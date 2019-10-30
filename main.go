@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -48,7 +49,7 @@ func main() {
 	var noverify bool
 	var forcemd5 bool
 	var forcebcrypt bool
-	var bcryptcost int
+	var bcryptcost int = bcrypt.DefaultCost
 	var noencrypt bool
 	var deleteuser bool
 	var verifyuser bool
@@ -76,17 +77,49 @@ On other systems than Windows and NetWare the '-p' flag will probably not work.
 The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 `)
 	}
-	flag.BoolVar(&create, "c", false, "Create a new file.")
-	flag.BoolVar(&dontupdate, "n", false, "Don't update file; display results on stdout.")
-	flag.BoolVar(&useargument, "b", false, "Use the password from the command line rather than prompting for it.")
-	flag.BoolVar(&noverify, "i", false, "Read password from stdin without verification (for script usage).")
-	flag.BoolVar(&forcemd5, "m", true, "Force MD5 encryption of the password (default).")
-	flag.BoolVar(&forcebcrypt, "B", false, "Force bcrypt encryption of the password (very secure).")
-	flag.IntVar(&bcryptcost, "C", bcrypt.DefaultCost, "Set the computing time used for the bcrypt algorithm\n(higher is more secure but slower, default: 5, valid: 4 to 31).")
-	flag.BoolVar(&noencrypt, "p", false, "Do not encrypt the password (plaintext, insecure).")
-	flag.BoolVar(&deleteuser, "D", false, "Delete the specified user.")
-	flag.BoolVar(&verifyuser, "v", false, "Verify password for the specified user.")
-	flag.Parse()
+
+	args := []string{}
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		if len(arg) > 0 && arg[0] == '-' {
+			for _, fl := range arg[1:] {
+				switch fl {
+				case 'c':
+					create = true
+				case 'n':
+					dontupdate = true
+				case 'b':
+					useargument = true
+				case 'i':
+					noverify = true
+				case 'm':
+					forcemd5 = true
+				case 'B':
+					forcebcrypt = true
+				case 'C':
+					if i == len(os.Args)-1 {
+						flag.Usage()
+						os.Exit(2)
+					}
+					v, err := strconv.Atoi(os.Args[i+1])
+					if err != nil {
+						fmt.Fprintln(os.Stderr, "htpasswd: argument to -C must be a positive integer")
+						os.Exit(2)
+					}
+					bcryptcost = v
+					i++
+				case 'p':
+					noencrypt = true
+				case 'D':
+					deleteuser = true
+				case 'v':
+					verifyuser = true
+				}
+			}
+		} else {
+			args = append(args, arg)
+		}
+	}
 
 	check := 0
 	if create {
@@ -142,7 +175,14 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 	}
 
 	var input string
-	if flag.NArg() == 2 && !deleteuser {
+	if noverify {
+		b, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
+			os.Exit(1)
+		}
+		input = string(b)
+	} else if flag.NArg() == 2 && !deleteuser {
 		t, err := tty.Open()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
@@ -170,8 +210,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 
 	var result string
 	if !noencrypt && !deleteuser {
-		if forcebcrypt {
-			//password.BCRYPT.Crypt
+		if forcebcrypt && !forcemd5 {
 			b, err := bcrypt.GenerateFromPassword([]byte(input), bcryptcost)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
