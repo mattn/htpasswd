@@ -44,7 +44,7 @@ func init() {
 func main() {
 	var create bool
 	var dontupdate bool
-	var usestdin bool
+	var useargument bool
 	var noverify bool
 	var forcemd5 bool
 	var forcebcrypt bool
@@ -78,7 +78,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 	}
 	flag.BoolVar(&create, "c", false, "Create a new file.")
 	flag.BoolVar(&dontupdate, "n", false, "Don't update file; display results on stdout.")
-	flag.BoolVar(&usestdin, "b", false, "Use the password from the command line rather than prompting for it.")
+	flag.BoolVar(&useargument, "b", false, "Use the password from the command line rather than prompting for it.")
 	flag.BoolVar(&noverify, "i", false, "Read password from stdin without verification (for script usage).")
 	flag.BoolVar(&forcemd5, "m", true, "Force MD5 encryption of the password (default).")
 	flag.BoolVar(&forcebcrypt, "B", false, "Force bcrypt encryption of the password (very secure).")
@@ -106,7 +106,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 		os.Exit(2)
 	}
 
-	if flag.NArg() != 2 && flag.NArg() != 3 {
+	if flag.NArg() != 2 || (!useargument || flag.NArg() != 3) {
 		flag.Usage()
 		os.Exit(130)
 	}
