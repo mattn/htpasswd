@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/mattn/go-tty"
-	"github.com/nathanaelle/password"
+	"github.com/nathanaelle/password/v2"
 )
 
 func randomBytes(n int) ([]byte, error) {
