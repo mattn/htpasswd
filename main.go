@@ -207,7 +207,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			fmt.Fprintln(os.Stderr, "htpasswd: password verification error")
 			os.Exit(3)
 		}
-	} else {
+	} else if len(args) == 3 {
 		input = args[2]
 	}
 
