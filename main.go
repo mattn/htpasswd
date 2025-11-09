@@ -46,7 +46,7 @@ func main() {
 	var dontupdate bool
 	var useargument bool
 	var noverify bool
-	var forcemd5 bool
+	var forcemd5 bool = true
 	var forcebcrypt bool
 	var forcesha256 bool
 	var bcryptcost int = bcrypt.DefaultCost
@@ -191,6 +191,8 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
 			os.Exit(1)
 		}
+		defer t.Close()
+
 		fmt.Print("New password: ")
 		input, err = t.ReadPasswordNoEcho()
 		if err != nil {
