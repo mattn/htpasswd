@@ -119,8 +119,14 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 					noverify = true
 				case 'm':
 					forcemd5 = true
+					forcebcrypt = false
+					forcesha = false
+					noencrypt = false
 				case 'B':
 					forcebcrypt = true
+					forcemd5 = false
+					forcesha = false
+					noencrypt = false
 				case 'C':
 					if i == len(os.Args)-1 {
 						usage()
@@ -135,8 +141,14 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 					i++
 				case 's':
 					forcesha = true
+					forcemd5 = false
+					forcebcrypt = false
+					noencrypt = false
 				case 'p':
 					noencrypt = true
+					forcemd5 = false
+					forcebcrypt = false
+					forcesha = false
 				case 'D':
 					deleteuser = true
 				case 'v':
