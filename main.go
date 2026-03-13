@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/rand"
+	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -48,7 +50,7 @@ func main() {
 	var noverify bool
 	var forcemd5 bool = true
 	var forcebcrypt bool
-	var forcesha256 bool
+	var forcesha bool
 	var bcryptcost int = bcrypt.DefaultCost
 	var noencrypt bool
 	var deleteuser bool
@@ -110,7 +112,7 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 					bcryptcost = v
 					i++
 				case 's':
-					forcesha256 = true
+					forcesha = true
 				case 'p':
 					noencrypt = true
 				case 'D':
@@ -229,13 +231,10 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 				os.Exit(1)
 			}
 			result = password.APR1.Crypt([]byte(input), []byte(s), nil)
-		} else if forcesha256 {
-			s, err := randomString(8)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
-				os.Exit(1)
-			}
-			result = password.SHA256.Crypt([]byte(input), []byte(s), nil)
+		} else if forcesha {
+			h := sha1.New()
+			h.Write([]byte(input))
+			result = "{SHA}" + base64.StdEncoding.EncodeToString(h.Sum(nil))
 		}
 		if dontupdate {
 			fmt.Print(result)
