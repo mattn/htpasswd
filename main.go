@@ -144,23 +144,29 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 		os.Exit(2)
 	}
 
-	if len(args) != 2 && (!useargument || len(args) != 3) {
-		usage()
-		os.Exit(130)
+	var file, user string
+	if dontupdate {
+		if len(args) != 1 && (!useargument || len(args) != 2) {
+			usage()
+			os.Exit(130)
+		}
+		user = args[0]
+		if useargument && len(args) == 2 {
+			// shift: for -n, args are [username, password]
+		}
+	} else {
+		if len(args) != 2 && (!useargument || len(args) != 3) {
+			usage()
+			os.Exit(130)
+		}
+		file = args[0]
+		user = args[1]
 	}
-	file := args[0]
-	user := args[1]
 
 	var content []byte
 	var err error
 
-	if dontupdate {
-		content, err = ioutil.ReadAll(os.Stdout)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
-			os.Exit(1)
-		}
-	} else if !create {
+	if !dontupdate && !create {
 		f, err := os.Open(file)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -187,7 +193,13 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			os.Exit(1)
 		}
 		input = string(b)
-	} else if len(args) == 2 && !deleteuser {
+	} else if useargument {
+		if dontupdate {
+			input = args[1]
+		} else {
+			input = args[2]
+		}
+	} else if !deleteuser {
 		t, err := tty.Open()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "htpasswd: %v", err)
@@ -211,8 +223,6 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			fmt.Fprintln(os.Stderr, "htpasswd: password verification error")
 			os.Exit(3)
 		}
-	} else if len(args) == 3 {
-		input = args[2]
 	}
 
 	var result string
@@ -237,11 +247,15 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			result = "{SHA}" + base64.StdEncoding.EncodeToString(h.Sum(nil))
 		}
 		if dontupdate {
-			fmt.Print(result)
+			fmt.Printf("%s:%s\n", user, result)
 			return
 		}
 	} else {
 		result = input
+		if dontupdate {
+			fmt.Printf("%s:%s\n", user, result)
+			return
+		}
 	}
 
 	if create {
