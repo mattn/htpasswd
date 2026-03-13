@@ -182,6 +182,11 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 		user = args[1]
 	}
 
+	if strings.ContainsRune(user, ':') {
+		fmt.Fprintln(os.Stderr, "htpasswd: username contains illegal character ':'")
+		os.Exit(6)
+	}
+
 	var content []byte
 	var err error
 
