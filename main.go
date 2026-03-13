@@ -335,6 +335,10 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 				buf.WriteString(line + "\n")
 			}
 		}
+		if deleteuser && !found {
+			fmt.Fprintf(os.Stderr, "User %s not found\n", user)
+			os.Exit(6)
+		}
 		if !found && !deleteuser {
 			buf.WriteString(user + ":" + result + "\n")
 		}
@@ -343,6 +347,12 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			fmt.Fprintf(os.Stderr, "htpasswd: cannot open file %s for read/write access\n", file)
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stderr, "Updating password for user %s\n", user)
+		if deleteuser {
+			fmt.Fprintf(os.Stderr, "Deleting password for user %s\n", user)
+		} else if found {
+			fmt.Fprintf(os.Stderr, "Updating password for user %s\n", user)
+		} else {
+			fmt.Fprintf(os.Stderr, "Adding password for user %s\n", user)
+		}
 	}
 }
