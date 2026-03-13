@@ -39,6 +39,28 @@ func randomString(n int) (string, error) {
 	return string(b), nil
 }
 
+func verifyPassword(input, stored string) bool {
+	if strings.HasPrefix(stored, "$2y$") || strings.HasPrefix(stored, "$2a$") || strings.HasPrefix(stored, "$2b$") {
+		return bcrypt.CompareHashAndPassword([]byte(stored), []byte(input)) == nil
+	}
+	if strings.HasPrefix(stored, "$apr1$") {
+		parts := strings.SplitN(stored, "$", 4)
+		if len(parts) >= 4 {
+			salt := parts[2]
+			return password.APR1.Crypt([]byte(input), []byte(salt), nil) == stored
+		}
+		return false
+	}
+	if strings.HasPrefix(stored, "{SHA}") {
+		h := sha1.New()
+		h.Write([]byte(input))
+		expected := "{SHA}" + base64.StdEncoding.EncodeToString(h.Sum(nil))
+		return expected == stored
+	}
+	// plaintext
+	return input == stored
+}
+
 func init() {
 	password.Register(password.APR1, password.BCRYPT)
 }
@@ -223,6 +245,34 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 			fmt.Fprintln(os.Stderr, "htpasswd: password verification error")
 			os.Exit(3)
 		}
+	}
+
+	if verifyuser {
+		found := false
+		scanner := bufio.NewScanner(bytes.NewReader(content))
+		for scanner.Scan() {
+			line := scanner.Text()
+			token := strings.SplitN(line, ":", 2)
+			if len(token) != 2 {
+				continue
+			}
+			if token[0] == user {
+				found = true
+				stored := token[1]
+				if verifyPassword(input, stored) {
+					fmt.Fprintf(os.Stderr, "Password for user %s correct.\n", user)
+					os.Exit(0)
+				} else {
+					fmt.Fprintf(os.Stderr, "password verification failed\n")
+					os.Exit(3)
+				}
+			}
+		}
+		if !found {
+			fmt.Fprintf(os.Stderr, "User %s not found\n", user)
+			os.Exit(6)
+		}
+		return
 	}
 
 	var result string
