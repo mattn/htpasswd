@@ -152,17 +152,14 @@ The SHA algorithm does not use a salt and is less secure than the MD5 algorithm.
 	if create {
 		check++
 	}
-	if dontupdate {
-		check++
-	}
 	if verifyuser {
 		check++
 	}
 	if deleteuser {
 		check++
 	}
-	if check != 0 && check > 1 {
-		fmt.Fprintln(os.Stderr, "htpasswd: only one of -c -n -v -D may be specified")
+	if check > 1 {
+		fmt.Fprintln(os.Stderr, "htpasswd: only one of -c -v -D may be specified")
 		os.Exit(2)
 	}
 
