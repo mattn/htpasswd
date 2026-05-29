@@ -14,7 +14,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/mattn/go-tty"
+	"github.com/mattn/go-tty/v2"
 	"github.com/nathanaelle/password/v2"
 )
 
